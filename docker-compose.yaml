@@ -1,0 +1,44 @@
+version: '2.3'
+
+services:
+  db:
+    image: 'postgres:latest'
+    ports:
+      - "25432:5432"
+    env_file:
+      - .env
+    volumes:
+      - ./data/db:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    restart: always
+
+  backend:
+    build:
+      context: ./bot
+    ports:
+      - "124:124"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: always
+    
+  redis:
+    image: "redis:latest"
+    ports:
+      - "16379:6379"
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    restart: always
